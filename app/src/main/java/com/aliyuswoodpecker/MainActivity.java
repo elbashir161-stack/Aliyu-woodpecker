@@ -1,14 +1,15 @@
+
 package com.aliyuswoodpecker;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.List;
 
@@ -18,6 +19,10 @@ public class MainActivity extends Activity
     private ChessBoardView chessBoard;
     private ChessGame chessGame;
     private WoodpeckerSession session;
+
+    private ProgressStore progressStore;
+    private MistakeRepository mistakeRepository;
+    private TrainingTimer timer;
 
     private TextView title;
     private TextView status;
@@ -38,6 +43,11 @@ public class MainActivity extends Activity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        progressStore = new ProgressStore(this);
+        mistakeRepository = new MistakeRepository(this);
+        timer = new TrainingTimer();
+        timer.start();
 
         buildInterface();
 
@@ -93,7 +103,7 @@ public class MainActivity extends Activity
 
         nextButton = new Button(this);
         nextButton.setText("Next puzzle");
-        nextButton.setVisibility(android.view.View.GONE);
+        nextButton.setVisibility(View.GONE);
         nextButton.setOnClickListener(v -> nextPuzzle());
 
         layout.addView(title);
@@ -115,8 +125,7 @@ public class MainActivity extends Activity
 
         if (puzzle == null) {
             status.setText("Round completed!");
-            nextButton.setVisibility(
-                    android.view.View.VISIBLE);
+            nextButton.setVisibility(View.VISIBLE);
             return;
         }
 
@@ -128,16 +137,19 @@ public class MainActivity extends Activity
         puzzleSolved = false;
         mistakeRecorded = false;
 
-        nextButton.setVisibility(android.view.View.GONE);
+        nextButton.setVisibility(View.GONE);
 
         progress.setText(
                 "Round " + session.getRound()
-                + "  |  Puzzle "
+                + " | Puzzle "
                 + (session.getCompleted() + 1)
                 + " / " + session.getTotal()
+                + "\nTime: " + timer.getFormattedTime()
         );
 
         status.setText("Find the best move.");
+
+        saveProgress();
     }
 
     @Override
@@ -171,7 +183,9 @@ public class MainActivity extends Activity
 
             if (!mistakeRecorded) {
                 session.recordIncorrect();
+                mistakeRepository.addMistake(puzzle.id);
                 mistakeRecorded = true;
+                saveProgress();
             }
 
             status.setText("Not the solution. Try again.");
@@ -185,7 +199,6 @@ public class MainActivity extends Activity
 
         solutionIndex++;
 
-        // Play the opponent's automatic reply.
         if (solutionIndex < puzzle.moves.size()) {
             String reply = puzzle.moves.get(solutionIndex);
 
@@ -204,8 +217,9 @@ public class MainActivity extends Activity
             session.recordCorrect();
 
             status.setText("Puzzle solved!");
-            nextButton.setVisibility(
-                    android.view.View.VISIBLE);
+            nextButton.setVisibility(View.VISIBLE);
+
+            saveProgress();
         } else {
             status.setText("Correct. Continue solving.");
         }
@@ -231,8 +245,49 @@ public class MainActivity extends Activity
                     + session.getIncorrect()
             );
 
-            nextButton.setVisibility(
-                    android.view.View.GONE);
+            nextButton.setVisibility(View.GONE);
+        }
+
+        saveProgress();
+    }
+
+    private void saveProgress() {
+        if (session == null || timer == null
+                || progressStore == null) {
+            return;
+        }
+
+        Puzzle puzzle = session.getCurrentPuzzle();
+
+        String puzzleId = puzzle == null ? ""
+                : puzzle.id;
+
+        progressStore.save(
+                session.getRound(),
+                session.getCompleted(),
+                session.getCorrect(),
+                session.getIncorrect(),
+                timer.getElapsedSeconds(),
+                puzzleId
+        );
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        if (timer != null) {
+            timer.pause();
+            saveProgress();
         }
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (timer != null) {
+            timer.start();
+        }
     }
+}

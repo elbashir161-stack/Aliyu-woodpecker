@@ -3,11 +3,7 @@ package com.aliyuswoodpecker;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import org.json.JSONArray;
-
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class MistakeRepository {
@@ -43,7 +39,7 @@ public class MistakeRepository {
         return new HashSet<>(
                 preferences.getStringSet(
                         "mistakes",
-                        new HashSet<>()
+                        new HashSet<String>()
                 )
         );
     }
@@ -57,4 +53,4 @@ public class MistakeRepository {
                 .remove("mistakes")
                 .apply();
     }
-  }
+    }

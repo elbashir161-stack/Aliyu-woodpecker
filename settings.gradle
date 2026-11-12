@@ -1,48 +1,21 @@
 
-name: Build Aliyu's Woodpecker APK
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
 
-on:
-  push:
-  workflow_dispatch:
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+rootProject.name = 'AliyusWoodpecker'
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install Python packages
-        run: pip install -r requirements.txt
-
-      - name: Generate puzzle database
-        run: python tools/generate_puzzles.py
-
-      - name: Set up Gradle 8.7
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: '8.7'
-
-      - name: Verify Gradle version
-        run: gradle --version
-
-      - name: Build APK
-        run: gradle assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Aliyus-Woodpecker-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+include ':app'

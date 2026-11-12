@@ -24,16 +24,14 @@ public class MainActivity extends Activity
     private MistakeRepository mistakeRepository;
     private TrainingTimer timer;
 
-    private TextView title;
     private TextView status;
     private TextView progress;
-
     private Button nextButton;
 
-    private String selectedSquare = null;
-    private int solutionIndex = 0;
-    private boolean puzzleSolved = false;
-    private boolean mistakeRecorded = false;
+    private String selectedSquare;
+    private int solutionIndex;
+    private boolean puzzleSolved;
+    private boolean mistakeRecorded;
 
     private int dp(float value) {
         return (int) (value * getResources()
@@ -80,7 +78,7 @@ public class MainActivity extends Activity
         layout.setPadding(dp(16), dp(20), dp(16), dp(20));
         layout.setBackgroundColor(Color.rgb(25, 25, 25));
 
-        title = new TextView(this);
+        TextView title = new TextView(this);
         title.setText("ALIYU'S WOODPECKER");
         title.setTextColor(Color.WHITE);
         title.setTextSize(25);
@@ -108,11 +106,8 @@ public class MainActivity extends Activity
 
         layout.addView(title);
         layout.addView(progress);
-
         layout.addView(chessBoard,
-                new LinearLayout.LayoutParams(
-                        -1, dp(340)));
-
+                new LinearLayout.LayoutParams(-1, dp(340)));
         layout.addView(status);
         layout.addView(nextButton);
 
@@ -125,7 +120,8 @@ public class MainActivity extends Activity
 
         if (puzzle == null) {
             status.setText("Round completed!");
-            nextButton.setVisibility(View.VISIBLE);
+            nextButton.setVisibility(View.GONE);
+            saveProgress();
             return;
         }
 
@@ -148,13 +144,13 @@ public class MainActivity extends Activity
         );
 
         status.setText("Find the best move.");
-
         saveProgress();
     }
 
     @Override
     public void onSquareTapped(String square) {
-        if (puzzleSolved || chessGame == null) {
+        if (puzzleSolved || chessGame == null
+                || session == null) {
             return;
         }
 
@@ -164,31 +160,35 @@ public class MainActivity extends Activity
             return;
         }
 
-        String attemptedMove =
-                selectedSquare + square;
+        if (selectedSquare.equals(square)) {
+            selectedSquare = null;
+            status.setText("Selection cancelled.");
+            return;
+        }
 
+        String attemptedMove = selectedSquare + square;
         selectedSquare = null;
 
         Puzzle puzzle = session.getCurrentPuzzle();
 
-        if (puzzle == null ||
-                solutionIndex >= puzzle.moves.size()) {
+        if (puzzle == null
+                || solutionIndex >= puzzle.moves.size()) {
             return;
         }
 
         String expectedMove =
                 puzzle.moves.get(solutionIndex);
 
-        if (!attemptedMove.equalsIgnoreCase(expectedMove)) {
+        // Compare the four coordinate characters.
+        // The full expected UCI move is used for promotion.
+        String expectedCoordinates =
+                expectedMove.substring(0, 4);
 
-            if (!mistakeRecorded) {
-                session.recordIncorrect();
-                mistakeRepository.addMistake(puzzle.id);
-                mistakeRecorded = true;
-                saveProgress();
-            }
+        if (!attemptedMove.equalsIgnoreCase(
+                expectedCoordinates)) {
 
-            status.setText("Not the solution. Try again.");
+            recordMistake(puzzle);
+            status.setText("Incorrect move. Try again.");
             return;
         }
 
@@ -199,6 +199,7 @@ public class MainActivity extends Activity
 
         solutionIndex++;
 
+        // Automatically play the opponent's reply.
         if (solutionIndex < puzzle.moves.size()) {
             String reply = puzzle.moves.get(solutionIndex);
 
@@ -218,15 +219,25 @@ public class MainActivity extends Activity
 
             status.setText("Puzzle solved!");
             nextButton.setVisibility(View.VISIBLE);
-
             saveProgress();
         } else {
-            status.setText("Correct. Continue solving.");
+            status.setText("Correct. Find the next move.");
+        }
+    }
+
+    private void recordMistake(Puzzle puzzle) {
+        if (!mistakeRecorded) {
+            session.recordIncorrect();
+            mistakeRepository.addMistake(puzzle.id);
+            mistakeRecorded = true;
+            saveProgress();
         }
     }
 
     private void nextPuzzle() {
-        if (session == null) return;
+        if (session == null) {
+            return;
+        }
 
         if (session.hasNext()) {
             loadCurrentPuzzle();
@@ -246,9 +257,8 @@ public class MainActivity extends Activity
             );
 
             nextButton.setVisibility(View.GONE);
+            saveProgress();
         }
-
-        saveProgress();
     }
 
     private void saveProgress() {
@@ -259,16 +269,13 @@ public class MainActivity extends Activity
 
         Puzzle puzzle = session.getCurrentPuzzle();
 
-        String puzzleId = puzzle == null ? ""
-                : puzzle.id;
-
         progressStore.save(
                 session.getRound(),
                 session.getCompleted(),
                 session.getCorrect(),
                 session.getIncorrect(),
                 timer.getElapsedSeconds(),
-                puzzleId
+                puzzle == null ? "" : puzzle.id
         );
     }
 

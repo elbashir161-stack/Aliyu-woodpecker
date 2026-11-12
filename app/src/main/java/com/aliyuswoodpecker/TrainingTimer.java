@@ -1,3 +1,4 @@
+
 package com.aliyuswoodpecker;
 
 import android.os.SystemClock;
@@ -19,6 +20,7 @@ public class TrainingTimer {
         if (running) {
             savedTime += SystemClock.elapsedRealtime()
                     - startTime;
+
             running = false;
         }
     }
@@ -26,6 +28,12 @@ public class TrainingTimer {
     public void reset() {
         startTime = 0;
         savedTime = 0;
+        running = false;
+    }
+
+    public void restore(long elapsedSeconds) {
+        savedTime = Math.max(0, elapsedSeconds) * 1000L;
+        startTime = 0;
         running = false;
     }
 
@@ -52,8 +60,11 @@ public class TrainingTimer {
         long remainingSeconds = seconds % 60;
 
         return String.format(
+                java.util.Locale.US,
                 "%02d:%02d:%02d",
-                hours, minutes, remainingSeconds
+                hours,
+                minutes,
+                remainingSeconds
         );
     }
 }

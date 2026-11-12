@@ -6,8 +6,9 @@ import java.util.List;
 
 public class WoodpeckerSession {
 
-    private final List<Puzzle> puzzles;
+    private final List<Puzzle> allPuzzles;
     private final List<Puzzle> mistakes = new ArrayList<>();
+    private List<Puzzle> roundPuzzles;
 
     private int currentIndex = 0;
     private int correct = 0;
@@ -15,16 +16,17 @@ public class WoodpeckerSession {
     private int round = 1;
 
     public WoodpeckerSession(List<Puzzle> puzzles) {
-        this.puzzles = new ArrayList<>(puzzles);
-        Collections.shuffle(this.puzzles);
+        allPuzzles = new ArrayList<>(puzzles);
+        roundPuzzles = new ArrayList<>(allPuzzles);
+        Collections.shuffle(roundPuzzles);
     }
 
     public Puzzle getCurrentPuzzle() {
-        if (currentIndex >= puzzles.size()) {
+        if (currentIndex >= roundPuzzles.size()) {
             return null;
         }
 
-        return puzzles.get(currentIndex);
+        return roundPuzzles.get(currentIndex);
     }
 
     public void recordCorrect() {
@@ -43,19 +45,17 @@ public class WoodpeckerSession {
     }
 
     public boolean hasNext() {
-        return currentIndex < puzzles.size();
+        return currentIndex < roundPuzzles.size();
     }
 
     public void startNextRound() {
-        if (!mistakes.isEmpty()) {
-            puzzles.clear();
-            puzzles.addAll(mistakes);
-            mistakes.clear();
-            Collections.shuffle(puzzles);
+        round++;
+        currentIndex = 0;
 
-            currentIndex = 0;
-            round++;
-        }
+        roundPuzzles = new ArrayList<>(allPuzzles);
+        Collections.shuffle(roundPuzzles);
+
+        mistakes.clear();
     }
 
     public int getCorrect() {
@@ -75,6 +75,10 @@ public class WoodpeckerSession {
     }
 
     public int getTotal() {
-        return puzzles.size();
+        return roundPuzzles.size();
     }
-  }
+
+    public List<Puzzle> getMistakes() {
+        return new ArrayList<>(mistakes);
+    }
+    }

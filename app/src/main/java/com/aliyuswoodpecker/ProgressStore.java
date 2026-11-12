@@ -19,7 +19,8 @@ public class ProgressStore {
             int completed,
             int correct,
             int incorrect,
-            long elapsedSeconds
+            long elapsedSeconds,
+            String currentPuzzleId
     ) {
         preferences.edit()
                 .putInt("round", round)
@@ -27,6 +28,7 @@ public class ProgressStore {
                 .putInt("correct", correct)
                 .putInt("incorrect", incorrect)
                 .putLong("elapsed", elapsedSeconds)
+                .putString("current_puzzle_id", currentPuzzleId)
                 .apply();
     }
 
@@ -50,7 +52,11 @@ public class ProgressStore {
         return preferences.getLong("elapsed", 0);
     }
 
+    public String getCurrentPuzzleId() {
+        return preferences.getString("current_puzzle_id", "");
+    }
+
     public void reset() {
         preferences.edit().clear().apply();
     }
-}
+            }
